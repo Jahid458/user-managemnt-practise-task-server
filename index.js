@@ -41,10 +41,17 @@ async function run() {
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
-
     app.get('/users',async (req,res)=>{
-      const cursor = database.find(); 
+      const {search} = req.query ; 
+      let option = {}
+      if(search){
+          option ={name:{$regex: search, $options: 'i'}}
+      }
+      console.log(search)
+  
+      const cursor = database.find(option); 
       const result = await cursor.toArray();
+      
       res.send(result)
     })
 
@@ -68,13 +75,44 @@ async function run() {
           email:updatedUser.email,
           gender:updatedUser.gender,
           status:updatedUser.status
+          
         }
       }
       const result = await database.updateOne(filter,User,options)
       res.send(result)
-
-
     })
+
+
+    app.put('/update/:id', async(req,res) =>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)};
+      const options = {upsert: true};
+      // const updatedUser = req.body;
+      const User = {
+        $set: {
+            isCompleted:true
+        }
+      }
+      const result = await database.updateOne(filter,User,options)
+      res.send(result)
+    })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     app.delete('/users/:id', async(req,res) => {
        const id = req.params.id;
@@ -82,20 +120,12 @@ async function run() {
        const result = await database.deleteOne(query); 
       res.send(result);
     })
-
-
-
-
     app.post('/users', async(req,res)=>{
         const newUser = req.body; 
         console.log('Succesfull new User added', newUser); 
         const result = await database.insertOne(newUser)
         res.send(result)
     })
-    
-
-
-   
 
   } finally {
     // Ensures that the client will close when you finish/error
